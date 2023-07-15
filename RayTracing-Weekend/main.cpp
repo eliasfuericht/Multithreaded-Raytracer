@@ -12,9 +12,28 @@
 #include "Vec3.h"
 #include "ray.h"
 
+double hitSphere(const Point3& center, double radius, const Ray& r) {
+    Vec3 oc = r.getOrigin() - center;
+    auto a = dot(r.getDirection(), r.getDirection());
+    auto b = 2.0 * dot(oc, r.getDirection());
+    auto c = dot(oc, oc) - radius * radius;
+    auto discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) {
+        return -1.0;
+    }
+    else {
+        return (-b - sqrt(discriminant)) / (2.0 * a);
+    }
+}
+
 Color rayColor(const Ray& r) {
+    auto t = hitSphere(Point3(0, 0, -1), 0.5, r);
+    if (t > 0.0) {
+        Vec3 N = normalize(r.at(t) - Vec3(0, 0, -1));
+        return 0.5 * Color(N.getX() + 1, N.getY() + 1, N.getZ() + 1);
+    }
     Vec3 unitDirection = normalize(r.getDirection());
-    auto t = 0.5 * (unitDirection.getY() + 1.0);
+    t = 0.5 * (unitDirection.getY() + 1.0);
     return (1.0 - t) * Color(1.0, 1.0, 1.0) + t * Color(0.5, 0.7, 1.0);
 }
 
