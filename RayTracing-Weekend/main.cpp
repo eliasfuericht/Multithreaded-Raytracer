@@ -14,15 +14,15 @@
 
 double hitSphere(const Point3& center, double radius, const Ray& r) {
     Vec3 oc = r.getOrigin() - center;
-    auto a = dot(r.getDirection(), r.getDirection());
-    auto b = 2.0 * dot(oc, r.getDirection());
-    auto c = dot(oc, oc) - radius * radius;
-    auto discriminant = b * b - 4 * a * c;
+    auto a = r.getDirection().lengthSquared();
+    auto halfB = dot(oc, r.getDirection());
+    auto c = oc.lengthSquared() - radius * radius;
+    auto discriminant = halfB* halfB - a * c;
     if (discriminant < 0) {
         return -1.0;
     }
     else {
-        return (-b - sqrt(discriminant)) / (2.0 * a);
+        return (-halfB - sqrt(discriminant)) / a;
     }
 }
 
@@ -40,7 +40,7 @@ Color rayColor(const Ray& r) {
 int main() {
     //Image
     const auto aspect = 16.0 / 9.0;
-    const int imageWidth = 400;
+    const int imageWidth = 1280;
     const int imageHeight = static_cast<int>(imageWidth / aspect);
     #define CHANNEL_NUM 3
 
@@ -60,7 +60,7 @@ int main() {
     //Render
     int index = 0;
     for (int j = imageHeight - 1; j >= 0; --j) {
-        std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
+        /*std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;*/
         for (int i = 0; i < imageWidth; ++i) {
 
             auto u = double(i) / (imageWidth - 1);
@@ -71,13 +71,11 @@ int main() {
             pixels[index++] = static_cast<int>(255.999 * pixelColor.getX());
             pixels[index++] = static_cast<int>(255.999 * pixelColor.getY());
             pixels[index++] = static_cast<int>(255.999 * pixelColor.getZ());
-            
-            //write_color(std::cout, pixelColor);
         }
     }
 
     stbi_write_jpg("testImage.jpg", imageWidth, imageHeight, 3, pixels, 100);
     delete[] pixels;
 
-    std::cerr << "\nDone\n";
+    std::cerr << "\nPicture rendered!\n";
 }
