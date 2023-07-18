@@ -54,6 +54,14 @@ public:
         return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
     }
 
+    inline static Vec3 random() {
+        return Vec3(randomD(), randomD(), randomD());
+    }
+
+    inline static Vec3 random(double min, double max) {
+        return Vec3(randomD(min, max), randomD(min, max), randomD(min, max));
+    }
+
 public:
     double e[3];
 };
@@ -106,4 +114,12 @@ inline Vec3 cross(const Vec3& u, const Vec3& v) {
 
 inline Vec3 normalize(Vec3 v) {
     return v / v.length();
+}
+
+Vec3 randomInUnitSphere() {
+    while (true) {
+        auto p = Vec3::random(-1, 1);
+        if (p.lengthSquared() >= 1) continue;
+        return p;
+    }
 }
