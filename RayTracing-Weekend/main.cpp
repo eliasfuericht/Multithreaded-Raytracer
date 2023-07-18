@@ -57,31 +57,35 @@ Color rayColor(const Ray& r, const Hittable& w, int depth) {
 int main() {
     //Image
     const auto aspect = 16.0 / 9.0;
-    const int imageWidth = 1280;
+    const int imageWidth = 640;
     const int imageHeight = static_cast<int>(imageWidth / aspect);
-    const int samplesPerPixel = 50;
-    const int maxDepth = 100;
-    #define CHANNEL_NUM 3
+    const int samplesPerPixel = 8;
+    const int maxDepth = 50;
+    const int channelNumber = 3;
 
     //World
     HittableList world;
-
     auto materialGround = make_shared<Lambertian>(Color(0.8, 0.8, 0.0));
-    auto materialCenter = make_shared<Lambertian>(Color(0.7, 0.3, 0.3));
-    auto materialLeft = make_shared<Metal>(Color(0.8, 0.8, 0.8),0.0);
-    auto materialRight = make_shared<Metal>(Color(0.8, 0.6, 0.2), 1.0);
+    auto materialCenter = make_shared<Lambertian>(Color(0.1, 0.2, 0.5));
+    auto materialLeft = make_shared<Dielectric>(1.5);
+    auto materialRight = make_shared<Metal>(Color(0.8, 0.6, 0.2), 0.0);
 
     world.add(make_shared<Sphere>(Point3(0.0, -100.5, -1.0), 100.0, materialGround));
     world.add(make_shared<Sphere>(Point3(0.0, 0.0, -1.0), 0.5, materialCenter));
     world.add(make_shared<Sphere>(Point3(-1.0, 0.0, -1.0), 0.5, materialLeft));
+    world.add(make_shared<Sphere>(Point3(-1.0, 0.0, -1.0), -0.45, materialLeft));
     world.add(make_shared<Sphere>(Point3(1.0, 0.0, -1.0), 0.5, materialRight));
 
-    //Camera 
-    Camera camera = Camera(Point3(0, 0, 0), (float)(16.0 / 9.0), 2.0, 1.0);
-    //Camera camera;
+
+    Point3 lookfrom(3, 3, 2);
+    Point3 lookat(0, 0, -1);
+    Vec3 vup(0, 1, 0);
+    auto dist_to_focus = (lookfrom - lookat).length();
+    auto aperture = 0.1;
+    Camera camera(lookfrom, lookat, vup, 20, aspect, aperture, dist_to_focus);
 
     //pixelarray for jpg-output
-    uint8_t* pixels = new uint8_t[imageWidth * imageHeight * CHANNEL_NUM];
+    uint8_t* pixels = new uint8_t[imageWidth * imageHeight * channelNumber];
 
     //Time start
     auto start = std::chrono::high_resolution_clock::now();
@@ -123,7 +127,7 @@ int main() {
     std::chrono::duration<double> duration = end - start;
     double seconds = duration.count();
 
-    std::cerr << "\nPicture rendered!\nIt took: " << seconds << " seconds\n" << std::endl;
+    std::cerr << "\nPicture rendered!\nIt took: " << seconds << " seconds\n";
 
     stbi_write_jpg("testImage.jpg", imageWidth, imageHeight, 3, pixels, 100);
     delete[] pixels;
