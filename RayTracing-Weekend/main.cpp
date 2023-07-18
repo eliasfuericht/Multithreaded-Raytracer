@@ -1,16 +1,21 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <windows.h>
 
+//jpg output
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image.h"
 #include "stb_image_write.h"
 
-#include "color.h"
-#include "Vec3.h"
-#include "ray.h"
+//own utilities
+#include "Utility.h"
+
+#include "Color.h"
+#include "Sphere.h"
+#include "HittableList.h"
 
 double hitSphere(const Point3& center, double radius, const Ray& r) {
     Vec3 oc = r.getOrigin() - center;
@@ -26,14 +31,13 @@ double hitSphere(const Point3& center, double radius, const Ray& r) {
     }
 }
 
-Color rayColor(const Ray& r) {
-    auto t = hitSphere(Point3(0, 0, -1), 0.5, r);
-    if (t > 0.0) {
-        Vec3 N = normalize(r.at(t) - Vec3(0, 0, -1));
-        return 0.5 * Color(N.getX() + 1, N.getY() + 1, N.getZ() + 1);
+Color rayColor(const Ray& r, const Hittable& w) {
+    HitRecord rec;
+    if (w.hit(r, 0, infinity, rec)) {
+        return 0.5 * (rec.normal + Color(1, 1, 1));
     }
     Vec3 unitDirection = normalize(r.getDirection());
-    t = 0.5 * (unitDirection.getY() + 1.0);
+    auto t = 0.5 * (unitDirection.getY() + 1.0);
     return (1.0 - t) * Color(1.0, 1.0, 1.0) + t * Color(0.5, 0.7, 1.0);
 }
 
@@ -43,6 +47,12 @@ int main() {
     const int imageWidth = 1280;
     const int imageHeight = static_cast<int>(imageWidth / aspect);
     #define CHANNEL_NUM 3
+
+    //World
+    HittableList world;
+    world.add(make_shared<Sphere>(Point3(0, 0, -1), 0.5));
+    world.add(make_shared<Sphere>(Point3(0, -100.5, -1), 100));
+    world.add(make_shared<Sphere>(Point3(-1.5, 0, -1), 0.25));
 
     //Camera 
     auto viewportHeight = 2.0;
@@ -66,7 +76,7 @@ int main() {
             auto u = double(i) / (imageWidth - 1);
             auto v = double(j) / (imageHeight - 1);
             Ray r(origin, lowerLeftCorner + u * horizontal + v * vertical - origin);
-            Color pixelColor = rayColor(r);
+            Color pixelColor = rayColor(r, world);
 
             pixels[index++] = static_cast<int>(255.999 * pixelColor.getX());
             pixels[index++] = static_cast<int>(255.999 * pixelColor.getY());
@@ -76,6 +86,7 @@ int main() {
 
     stbi_write_jpg("testImage.jpg", imageWidth, imageHeight, 3, pixels, 100);
     delete[] pixels;
+    ShellExecuteA(NULL, "open", "testImage.jpg", NULL, NULL, SW_SHOWNORMAL);
 
     std::cerr << "\nPicture rendered!\n";
 }
