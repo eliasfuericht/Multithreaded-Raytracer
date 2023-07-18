@@ -54,6 +54,11 @@ public:
         return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
     }
 
+    bool nearZero() const {
+        const auto s = 1e-8;
+        return (fabs(e[0]) < s) && (fabs(e[1]) < s) && (fabs(e[2]) < s);
+    }
+
     inline static Vec3 random() {
         return Vec3(randomD(), randomD(), randomD());
     }
@@ -122,4 +127,20 @@ Vec3 randomInUnitSphere() {
         if (p.lengthSquared() >= 1) continue;
         return p;
     }
+}
+
+Vec3 randomInUnitVector() {
+    return normalize(randomInUnitSphere());
+}
+
+Vec3 randomInHemisphere(const Vec3& normal) {
+    Vec3 in_unit_sphere = randomInUnitSphere();
+    if (dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return in_unit_sphere;
+    else
+        return -in_unit_sphere;
+}
+
+Vec3 reflect(const Vec3& v, const Vec3& n) {
+    return v - 2 * dot(v, n) * n;
 }

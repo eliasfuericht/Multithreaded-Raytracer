@@ -15,10 +15,11 @@
 //own utilities
 #include "Utility.h"
 
-#include "Color.h"
-#include "Sphere.h"
-#include "HittableList.h"
 #include "Camera.h"
+#include "Color.h"
+#include "HittableList.h"
+#include "Material.h"
+#include "Sphere.h"
 
 double hitSphere(const Point3& center, double radius, const Ray& r) {
     Vec3 oc = r.getOrigin() - center;
@@ -42,8 +43,11 @@ Color rayColor(const Ray& r, const Hittable& w, int depth) {
         return Color(0, 0, 0);
 
     if (w.hit(r, 0.001, infinity, rec)) {
-        Point3 target = rec.p + rec.normal + randomInUnitSphere();
-        return 0.5 * rayColor(Ray(rec.p, target - rec.p), w, depth-1);
+        Ray scattered;
+        Color attenuation;
+        if (rec.matPtr->scatter(r, rec, attenuation, scattered))
+            return attenuation * rayColor(scattered, w, depth - 1);
+        return Color(0, 0, 0);
     }
     Vec3 unitDirection = normalize(r.getDirection());
     auto t = 0.5 * (unitDirection.getY() + 1.0);
@@ -55,15 +59,22 @@ int main() {
     const auto aspect = 16.0 / 9.0;
     const int imageWidth = 1280;
     const int imageHeight = static_cast<int>(imageWidth / aspect);
-    const int samplesPerPixel = 8;
-    const int maxDepth = 50;
+    const int samplesPerPixel = 50;
+    const int maxDepth = 100;
     #define CHANNEL_NUM 3
 
     //World
     HittableList world;
-    world.add(make_shared<Sphere>(Point3(0, 0, -1), 0.5));
-    world.add(make_shared<Sphere>(Point3(0, -100.5, -1), 100));
-    //world.add(make_shared<Sphere>(Point3(-1.5, 0, -1), 0.25));
+
+    auto materialGround = make_shared<Lambertian>(Color(0.8, 0.8, 0.0));
+    auto materialCenter = make_shared<Lambertian>(Color(0.7, 0.3, 0.3));
+    auto materialLeft = make_shared<Metal>(Color(0.8, 0.8, 0.8),0.0);
+    auto materialRight = make_shared<Metal>(Color(0.8, 0.6, 0.2), 1.0);
+
+    world.add(make_shared<Sphere>(Point3(0.0, -100.5, -1.0), 100.0, materialGround));
+    world.add(make_shared<Sphere>(Point3(0.0, 0.0, -1.0), 0.5, materialCenter));
+    world.add(make_shared<Sphere>(Point3(-1.0, 0.0, -1.0), 0.5, materialLeft));
+    world.add(make_shared<Sphere>(Point3(1.0, 0.0, -1.0), 0.5, materialRight));
 
     //Camera 
     Camera camera = Camera(Point3(0, 0, 0), (float)(16.0 / 9.0), 2.0, 1.0);

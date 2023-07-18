@@ -10,9 +10,10 @@ public:
 		radius = 0;
 	}
 
-	Sphere(Point3 c, double r) {
+	Sphere(Point3 c, double r, shared_ptr<Material> m) {
 		center = c;
 		radius = r;
+        matPtr = m;
 	};
 
 	bool hit(const Ray& r, double tMin, double tMax, HitRecord& rec) const override;
@@ -20,6 +21,7 @@ public:
 public:
 	Point3 center;
 	double radius;
+    shared_ptr<Material> matPtr;
 };
 
 bool Sphere::hit(const Ray& r, double t_min, double t_max, HitRecord& rec) const {
@@ -45,6 +47,7 @@ bool Sphere::hit(const Ray& r, double t_min, double t_max, HitRecord& rec) const
     rec.normal = (rec.p - center) / radius;
     Vec3 outwardNormal = (rec.p - center) / radius;
     rec.setFaceNormal(r, outwardNormal);
+    rec.matPtr = matPtr;
 
     return true;
 }

@@ -1,12 +1,13 @@
 #pragma once
 
-#include "Vec3.h"
-#include "Ray.h"
+#include "Utility.h"
 
+class Material;
 
 struct HitRecord {
 	Point3 p;
 	Vec3 normal;
+	shared_ptr<Material> matPtr;
 	double t;
 	bool frontFace;
 
