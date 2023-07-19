@@ -5,6 +5,7 @@
 #include <chrono>
 #include <thread>
 
+
 //jpg output
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
@@ -93,7 +94,7 @@ HittableList random_scene() {
     auto material1 = make_shared<Dielectric>(1.5);
     world.add(make_shared<Sphere>(Point3(0, 1, 0), 1.0, material1));
 
-    auto material2 = make_shared<Lambertian>(Color(0.4, 0.2, 0.1));
+    auto material2 = make_shared<Lambertian>(Color(0.0, 0.5, 0.5));
     world.add(make_shared<Sphere>(Point3(-4, 1, 0), 1.0, material2));
 
     auto material3 = make_shared<Metal>(Color(0.7, 0.6, 0.5), 0.0);
@@ -103,11 +104,14 @@ HittableList random_scene() {
 }
 
 int main() {
+    //Time start
+    auto start = std::chrono::high_resolution_clock::now();
+
     //Image
     const auto aspect = 3.0 / 2.0;
-    const int imageWidth = 1200;
+    const int imageWidth = 1080;
     const int imageHeight = static_cast<int>(imageWidth / aspect);
-    const int samplesPerPixel = 8;
+    const int samplesPerPixel = 50;
     const int maxDepth = 50;
     const int channelNumber = 3;
 
@@ -124,37 +128,78 @@ int main() {
     //pixelarray for jpg-output
     uint8_t* pixels = new uint8_t[imageWidth * imageHeight * channelNumber];
 
-    //Time start
-    auto start = std::chrono::high_resolution_clock::now();
+    int numThreads = std::thread::hardware_concurrency();
 
-    //Render
-    int index = 0;
-    for (int j = imageHeight - 1; j >= 0; --j) {
-        //std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
-        std::cerr << "\rRendering progress: " << (int)((imageHeight - j) * 100.0) / imageHeight << "% " << std::flush;
-        for (int i = 0; i < imageWidth; ++i) {
-            Color pixelColor(0, 0, 0);
-            for (int s = 0; s < samplesPerPixel; ++s) {
-                auto u = (i + randomD()) / (imageWidth - 1);
-                auto v = (j + randomD()) / (imageHeight - 1);
-                Ray r = camera.getRay(u, v);
-                //Ray r(camera.origin, camera.lowerLeftCorner + u * camera.horizontal + v * camera.vertical - camera.origin);
-                pixelColor += rayColor(r, world,maxDepth);
-            }
-            auto r = pixelColor.getX();
-            auto g = pixelColor.getY();
-            auto b = pixelColor.getZ();
+    int stripHeight = imageHeight / numThreads;
 
-            // Divide the color by the number of samples.
-            auto scale = 1.0 / samplesPerPixel;
-            r = sqrt(scale * r);
-            g = sqrt(scale * g);
-            b = sqrt(scale * b);
+    std::vector<std::thread> threads;
 
-            pixels[index++] = static_cast<int>(256 * clamp(r, 0.0, 0.999));
-            pixels[index++] = static_cast<int>(256 * clamp(g, 0.0, 0.999));
-            pixels[index++] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
+    std::vector<uint8_t*> threadPixels(numThreads);
+
+    for (int t = 0; t < numThreads; ++t) {
+        int startY = t * stripHeight;
+        int endY = (t + 1) * stripHeight;
+
+        // The last thread should render the remaining rows (if any).
+        if (t == numThreads - 1) {
+            endY = imageHeight;
         }
+
+        // Create the pixel array for this thread.
+        threadPixels[t] = new uint8_t[imageWidth * (endY - startY) * channelNumber];
+
+        int tracker = imageHeight;
+
+        // Start a new thread and render the assigned strip.
+        threads.emplace_back([startY, endY, &world, &camera, imageWidth, imageHeight, channelNumber, samplesPerPixel, maxDepth, threadPixels, t, &tracker]() {
+            for (int j = endY - 1; j >= startY; --j) {
+                int scanlineIndex = 0;
+                uint8_t* scanlinePixels = &threadPixels[t][(endY - 1 - j) * imageWidth * channelNumber];
+                for (int i = 0; i < imageWidth; ++i) {
+                    Color pixelColor(0, 0, 0);
+                    for (int s = 0; s < samplesPerPixel; ++s) {
+                        auto u = (i + randomD()) / (imageWidth - 1);
+                        auto v = (j + randomD()) / (imageHeight - 1);
+                        Ray r = camera.getRay(u, v);
+                        pixelColor += rayColor(r, world, maxDepth);
+                    }
+                    auto r = pixelColor.getX();
+                    auto g = pixelColor.getY();
+                    auto b = pixelColor.getZ();
+
+                    // Divide the Color by the number of samples.
+                    auto scale = 1.0 / samplesPerPixel;
+                    r = sqrt(scale * r);
+                    g = sqrt(scale * g);
+                    b = sqrt(scale * b);
+
+                    scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(r, 0.0, 0.999));
+                    scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(g, 0.0, 0.999));
+                    scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
+                }
+                tracker--;
+                std::cerr << "\rScanlines Left: " << tracker << " ";
+            }
+            });
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    int index = 0;
+    for (int t = 0; t < numThreads; ++t) {
+        int startY = t * stripHeight;
+        int endY = (t + 1) * stripHeight;
+        if (t == numThreads - 1) {
+            endY = imageHeight;
+        }
+
+        int start = (imageHeight - endY) * imageWidth * channelNumber;
+        int end = (imageHeight - startY) * imageWidth * channelNumber;
+
+        std::copy(threadPixels[t], threadPixels[t] + (endY - startY) * imageWidth * channelNumber, pixels + start);
+        delete[] threadPixels[t];
     }
 
     // Get the current time point after the operation completes
