@@ -34,7 +34,7 @@ public:
 Renderer::Renderer()
 {
 	imageWidth = 640;
-	aspect = 16.0 / 9.0;
+	aspect = 16.0f / 9.0f;
 	imageHeight = static_cast<int>(imageWidth / aspect);
 	samplesPerPixel = 8;
 	depth = 24;
@@ -44,7 +44,7 @@ Renderer::Renderer()
 Renderer::Renderer(int width, int samples, int bounces, bool multithread)
 {
 	imageWidth = width;
-	aspect = 16.0 / 9.0;
+	aspect = 16.0f / 9.0f;
 	imageHeight = static_cast<int>(imageWidth / aspect);
 	samplesPerPixel = samples;
 	depth = bounces;
@@ -129,7 +129,7 @@ uint8_t* Renderer::render(HittableList world, Camera camera) {
 					scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
 				}
 				tracker--;
-				progress = tracker;
+				progress = (float)tracker;
 				std::cerr << "\rScanlines Left: " << tracker << " ";
 				
 			}
