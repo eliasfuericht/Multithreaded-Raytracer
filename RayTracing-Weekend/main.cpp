@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -25,46 +26,8 @@
 #include "stb_image_write.h"
 
 //own includes
-#include "Utility.h"
-#include "Camera.h"
-#include "Color.h"
-#include "HittableList.h"
-#include "Material.h"
+#include "Renderer.h"
 #include "Sphere.h"
-#include "Renderer.h" 
-
-double hitSphere(const Point3& center, double radius, const Ray& r) {
-	Vec3 oc = r.getOrigin() - center;
-	auto a = r.getDirection().lengthSquared();
-	auto halfB = dot(oc, r.getDirection());
-	auto c = oc.lengthSquared() - radius * radius;
-	auto discriminant = halfB * halfB - a * c;
-	if (discriminant < 0) {
-		return -1.0;
-	}
-	else {
-		return (-halfB - sqrt(discriminant)) / a;
-	}
-}
-
-Color rayColor(const Ray& r, const Hittable& w, int depth) {
-	HitRecord rec;
-
-	// If we've exceeded the ray bounce limit, no more light is gathered.
-	if (depth <= 0)
-		return Color(0, 0, 0);
-
-	if (w.hit(r, 0.001, infinity, rec)) {
-		Ray scattered;
-		Color attenuation;
-		if (rec.matPtr->scatter(r, rec, attenuation, scattered))
-			return attenuation * rayColor(scattered, w, depth - 1);
-		return Color(0, 0, 0);
-	}
-	Vec3 unitDirection = normalize(r.getDirection());
-	auto t = 0.5 * (unitDirection.getY() + 1.0);
-	return (1.0 - t) * Color(1.0, 1.0, 1.0) + t * Color(0.5, 0.7, 1.0);
-}
 
 HittableList random_scene() {
 	HittableList world;
@@ -114,7 +77,7 @@ HittableList random_scene() {
 	return world;
 }
 
-void runGUI() {
+void runGUI(Renderer* renderer) {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
 	{
 		printf("Error: %s\n", SDL_GetError());
@@ -197,7 +160,7 @@ void runGUI() {
 
 		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
 		{
-			static float f = 0.0f;
+			float f = renderer->getProgress();
 			static int counter = 0;
 
 			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
@@ -241,120 +204,39 @@ void runGUI() {
 	EMSCRIPTEN_MAINLOOP_END;
 #endif
 
-	// Cleanup
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
-	ImGui::DestroyContext();
+		// Cleanup
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplSDL2_Shutdown();
+		ImGui::DestroyContext();
 
-	SDL_GL_DeleteContext(gl_context);
-	SDL_DestroyWindow(window);
-	SDL_Quit();
+		SDL_GL_DeleteContext(gl_context);
+		SDL_DestroyWindow(window);
+		SDL_Quit();
 }
 
 int main(int argc, char* args[]) {
 
-	std::thread guiThread(runGUI);
-	
 	//Time start
 	auto start = std::chrono::high_resolution_clock::now();
 
-	//Image
-	const auto aspect = 16.0 / 9.0;
-	const int imageWidth = 1080;
-	const int imageHeight = static_cast<int>(imageWidth / aspect);
-	const int samplesPerPixel = 10;
-	const int maxDepth = 10;
-	const int channelNumber = 3;
+	//Image & renderer
+	Renderer renderer = Renderer(1080, 1, 1, true);
+
+	std::thread guiThread(runGUI, &renderer);
 
 	//World
 	auto world = random_scene();
 
-	Point3 lookfrom(13, 2, 3);
-	Point3 lookat(0, 0, 0);
-	Vec3 vup(0, 1, 0);
-	auto dist_to_focus = 10.0;
-	auto aperture = 0.1;
-	Camera camera(lookfrom, lookat, vup, 20, aspect, aperture, dist_to_focus);
+	Camera camera(Point3(13, 2, 3), Point3(0, 0, 0), Vec3(0, 1, 0), 20, renderer.aspect, 0.1, 20);
 
-	//pixelarray for jpg-output
-	uint8_t* pixels = new uint8_t[imageWidth * imageHeight * channelNumber];
-
-	int numThreads = std::thread::hardware_concurrency()-2;
-	
-	int stripHeight = imageHeight / numThreads;
-
-	std::vector<std::thread> threads;
-
-	std::vector<uint8_t*> threadPixels(numThreads);
-
-	for (int t = 0; t < numThreads; ++t) {
-		int startY = t * stripHeight;
-		int endY = (t + 1) * stripHeight;
-
-		if (t == numThreads - 1) {
-			endY = imageHeight;
-		}
-
-		threadPixels[t] = new uint8_t[imageWidth * (endY - startY) * channelNumber];
-
-		int tracker = imageHeight;
-		threads.emplace_back([startY, endY, &world, &camera, imageWidth, imageHeight, channelNumber, samplesPerPixel, maxDepth, threadPixels, t, &tracker]() {
-			for (int j = endY - 1; j >= startY; --j) {
-				int scanlineIndex = 0;
-				uint8_t* scanlinePixels = &threadPixels[t][(endY - 1 - j) * imageWidth * channelNumber];
-				for (int i = 0; i < imageWidth; ++i) {
-					Color pixelColor(0, 0, 0);
-					for (int s = 0; s < samplesPerPixel; ++s) {
-						auto u = (i + randomD()) / (imageWidth - 1);
-						auto v = (j + randomD()) / (imageHeight - 1);
-						Ray r = camera.getRay(u, v);
-						pixelColor += rayColor(r, world, maxDepth);
-					}
-					auto r = pixelColor.getX();
-					auto g = pixelColor.getY();
-					auto b = pixelColor.getZ();
-
-					// Divide the Color by the number of samples.
-					auto scale = 1.0 / samplesPerPixel;
-					r = sqrt(scale * r);
-					g = sqrt(scale * g);
-					b = sqrt(scale * b);
-
-					scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(r, 0.0, 0.999));
-					scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(g, 0.0, 0.999));
-					scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
-				}
-				tracker--;
-				std::cerr << "\rScanlines Left: " << tracker << " ";
-			}
-			});
-	}
-
-	for (auto& thread : threads) {
-		thread.join();
-	}
-
-	int index = 0;
-	for (int t = 0; t < numThreads; ++t) {
-		int startY = t * stripHeight;
-		int endY = (t + 1) * stripHeight;
-		if (t == numThreads - 1) {
-			endY = imageHeight;
-		}
-
-		int start = (imageHeight - endY) * imageWidth * channelNumber;
-		int end = (imageHeight - startY) * imageWidth * channelNumber;
-
-		std::copy(threadPixels[t], threadPixels[t] + (endY - startY) * imageWidth * channelNumber, pixels + start);
-		delete[] threadPixels[t];
-	}
+	uint8_t* pixels = renderer.render(world, camera);
 
 	auto end = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> duration = end - start;
 	double seconds = duration.count();
 	std::cerr << "\nPicture rendered!\nIt took: " << seconds << " seconds\n";
 
-	stbi_write_jpg("testImage.jpg", imageWidth, imageHeight, 3, pixels, 100);
+	stbi_write_jpg("testImage.jpg", renderer.imageWidth, renderer.imageHeight, 3, pixels, 100);
 	delete[] pixels;
 	ShellExecuteA(NULL, "open", "testImage.jpg", NULL, NULL, SW_SHOWNORMAL);
 
