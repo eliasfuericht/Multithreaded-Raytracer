@@ -2,6 +2,8 @@
 
 #include <thread>
 #include <vector>
+#include <mutex>
+
 #include "Material.h"
 #include "HittableList.h"
 #include "Camera.h"
@@ -17,6 +19,7 @@ public:
     Color rayColor(const Ray& r, const Hittable& w, int depth);
 
     uint8_t* render(HittableList world, Camera camera);
+	uint8_t* getCurrentPixels() { return currentPixels; };
 
 	float getProgress() { return progress; };
 
@@ -29,6 +32,9 @@ public:
 	int imageHeight;
 
 	float progress = 0;
+
+private:
+	uint8_t* currentPixels = nullptr;
 };
 
 Renderer::Renderer()
@@ -130,10 +136,9 @@ uint8_t* Renderer::render(HittableList world, Camera camera) {
 				}
 				tracker--;
 				progress = (float)tracker;
-				std::cerr << "\rScanlines Left: " << tracker << " ";
 				
 			}
-			});
+		});
 	}
 
 	for (auto& thread : threads) {

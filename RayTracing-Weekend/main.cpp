@@ -115,11 +115,8 @@ void runGUI(Renderer* renderer) {
 	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
-	// Our state
 	bool show_demo_window = true;
-	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
 
 	bool done = false;
 	#ifdef __EMSCRIPTEN__
@@ -146,7 +143,17 @@ void runGUI(Renderer* renderer) {
 
 		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 		if (show_demo_window)
-			ImGui::ShowDemoWindow(&show_demo_window);
+		{
+			float f = renderer->getProgress();
+			float progress = 100 - (f / renderer->imageHeight) * 100.0f;
+
+			ImGui::Begin("Raytracer Progress");                          // Create a window called "Hello, world!" and append into it.
+
+			ImGui::SliderFloat("Scanlines remaining", &f, 0.0f, renderer->imageHeight);
+			ImGui::SliderFloat("Progress:", &progress, 0.0f, 100.0f);
+
+			ImGui::End();
+		}
 
 		// Rendering
 		ImGui::Render();
@@ -176,12 +183,11 @@ int main(int argc, char* args[]) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	//Image & renderer
-	Renderer renderer = Renderer(1080, 1, 1, true);
+	Renderer renderer = Renderer(1080, 20, 20, true);
 
 	std::thread guiThread(runGUI, &renderer);
 
-	//World
-	auto world = random_scene();
+	HittableList world = random_scene();
 
 	Camera camera(Point3(13, 2, 3), Point3(0, 0, 0), Vec3(0, 1, 0), 20, renderer.aspect, 0.1, 20);
 
