@@ -14,10 +14,16 @@
 #include "Renderer.h"
 
 namespace GUI {
-	void runGUI(Renderer* renderer);
+	void runGUI(int windowW, int windowH, Renderer* renderer);
+
+	bool loadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height);
+
+	void toggleRendering();
+
+	bool rendering = true;
 }
 
-void GUI::runGUI(Renderer* renderer) {
+void GUI::runGUI(int windowW, int windowH, Renderer* renderer) {
 		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
 		{
 			printf("Error: %s\n", SDL_GetError());
@@ -39,7 +45,7 @@ void GUI::runGUI(Renderer* renderer) {
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 		SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-		SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+		SDL_Window* window = SDL_CreateWindow("RayTracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowW, windowH, window_flags);
 		SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 		SDL_GL_MakeCurrent(window, gl_context);
 		SDL_GL_SetSwapInterval(1);
@@ -89,17 +95,32 @@ void GUI::runGUI(Renderer* renderer) {
 			ImGui_ImplSDL2_NewFrame();
 			ImGui::NewFrame();
 
+			//Demo Window
 			ImGui::ShowDemoWindow();
 
-			int f = renderer->getProgress();
-			float progress = 100 - ((float)f / renderer->imageHeight) * 100.0f;
+			//Progress Window
+			{
+				int f = (int)renderer->getProgress();
+				float progress = 100 - ((float)f / renderer->imageHeight) * 100.0f;
+				ImGui::Begin("Raytracer Progress");
+				ImGui::SliderInt("Scanlines remaining", &f, 0, renderer->imageHeight);
+				ImGui::SliderFloat("Progress:", &progress, 0.0f, 100.0f);
+				ImGui::End();
+			}
 
-			ImGui::Begin("Raytracer Progress");                          // Create a window called "Hello, world!" and append into it.
-
-			ImGui::SliderInt("Scanlines remaining", &f, 0.0f, renderer->imageHeight);
-			ImGui::SliderFloat("Progress:", &progress, 0.0f, 100.0f);
-
-			ImGui::End();
+			//output Window
+			{
+				ImGui::Begin("OpenGL Texture Text");
+				if (!rendering)
+				{
+					int my_image_width = 0;
+					int my_image_height = 0;
+					GLuint my_image_texture = 0;
+					bool ret = GUI::loadTextureFromFile("currentRender.jpg", &my_image_texture, &my_image_width, &my_image_height);
+					ImGui::Image((void*)(intptr_t)my_image_texture, ImVec2((float)my_image_width, (float)my_image_height));
+				}
+				ImGui::End();
+			}
 
 			// Rendering
 			ImGui::Render();
@@ -133,4 +154,41 @@ void GUI::runGUI(Renderer* renderer) {
 		SDL_Quit();
 }
 
+bool GUI::loadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height)
+{
+	// Load from file
+	int image_width = 0;
+	int image_height = 0;
+	unsigned char* image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
+	if (image_data == NULL)
+		return false;
+
+	// Create a OpenGL texture identifier
+	GLuint image_texture;
+	glGenTextures(1, &image_texture);
+	glBindTexture(GL_TEXTURE_2D, image_texture);
+
+	// Setup filtering parameters for display
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
+
+	// Upload pixels into texture
+#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+	stbi_image_free(image_data);
+
+	*out_texture = image_texture;
+	*out_width = image_width;
+	*out_height = image_height;
+
+	return true;
+}
+
+void GUI::toggleRendering() {
+	rendering = !rendering;
+}
 
