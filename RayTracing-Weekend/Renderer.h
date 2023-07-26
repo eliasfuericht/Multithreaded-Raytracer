@@ -8,8 +8,6 @@
 #include "HittableList.h"
 #include "Camera.h"
 
-class HittableList;
-
 class Renderer
 {
 public:

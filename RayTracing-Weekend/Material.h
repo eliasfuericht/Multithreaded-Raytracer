@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Utility.h"
 #include "Hittable.h"
 
 class Material {

@@ -23,7 +23,7 @@ public:
 		lowerLeftCorner = origin - horizontal / 2 - vertical / 2 - focusDistance * w;
 
 		lens_radius = aperture / 2;
-	}
+	};
 
 	Ray getRay(double s, double t) const {
 		Vec3 rd = lens_radius * randomInUnitDisk();
