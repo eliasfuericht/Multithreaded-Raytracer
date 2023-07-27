@@ -14,16 +14,20 @@
 #include "Renderer.h"
 
 namespace GUI {
-	void runGUI(int windowW, int windowH, Renderer* renderer);
+	void runGUI(int windowW, int windowH);
 
 	bool loadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height);
+	Renderer* getRenderer();
 
-	void toggleRendering();
+	Renderer renderer = Renderer(1080,10,10,true);
 
-	bool rendering = true;
+	std::condition_variable cv;
+	std::mutex cvMutex;
+
+	bool startRender = false;
 }
 
-void GUI::runGUI(int windowW, int windowH, Renderer* renderer) {
+void GUI::runGUI(int windowW, int windowH) {
 		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
 		{
 			printf("Error: %s\n", SDL_GetError());
@@ -97,13 +101,28 @@ void GUI::runGUI(int windowW, int windowH, Renderer* renderer) {
 
 			//Demo Window
 			ImGui::ShowDemoWindow();
+			
+			//Render Settings Window
+			{
+				ImGui::Begin("Render Settings");
+				ImGui::SliderInt("Image Width", &renderer.imageWidth, 10, 2000);
+				ImGui::SliderInt("Image Height", &renderer.imageHeight, 10, 2000);
+				ImGui::SliderInt("Samples", &renderer.samplesPerPixel, 1, 50);
+				ImGui::SliderInt("Bounces", &renderer.depth, 1, 50);
+				ImGui::Checkbox("multithreading", &renderer.multithreaded);
+				if (ImGui::Button("Start Rendering")) {
+					GUI::startRender = true;
+					GUI::cv.notify_one();
+				}
+				ImGui::End();
+			}
 
 			//Progress Window
 			{
-				int f = (int)renderer->getProgress();
-				float progress = 100 - ((float)f / renderer->imageHeight) * 100.0f;
+				int f = (int)GUI::renderer.renderInfo.progress;
+				float progress = 100 - ((float)f / GUI::renderer.imageHeight) * 100.0f;
 				ImGui::Begin("Raytracer Progress");
-				ImGui::SliderInt("Scanlines remaining", &f, 0, renderer->imageHeight);
+				ImGui::SliderInt("Scanlines remaining", &f, 0, GUI::renderer.imageHeight);
 				ImGui::SliderFloat("Progress:", &progress, 0.0f, 100.0f);
 				ImGui::End();
 			}
@@ -111,7 +130,7 @@ void GUI::runGUI(int windowW, int windowH, Renderer* renderer) {
 			//output Window
 			{
 				ImGui::Begin("OpenGL Texture Text");
-				if (!rendering)
+				if (!GUI::renderer.renderInfo.rendering)
 				{
 					int my_image_width = 0;
 					int my_image_height = 0;
@@ -188,7 +207,7 @@ bool GUI::loadTextureFromFile(const char* filename, GLuint* out_texture, int* ou
 	return true;
 }
 
-void GUI::toggleRendering() {
-	rendering = !rendering;
+Renderer* GUI::getRenderer()
+{
+	return &GUI::renderer;
 }
-

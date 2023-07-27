@@ -69,28 +69,23 @@ HittableList random_scene() {
 
 int main(int argc, char* args[]) {
 
-	//Time start
-	auto start = std::chrono::high_resolution_clock::now();
+	std::thread guiThread(GUI::runGUI,1280,720);
 
-	//Image & renderer
-	Renderer renderer = Renderer(1680, 1, 1, true);
-
-	std::thread guiThread(GUI::runGUI,1920,1080,&renderer);
+	{
+		std::unique_lock<std::mutex> lock(GUI::cvMutex);
+		GUI::cv.wait(lock, [] { return GUI::startRender; });
+	}
 
 	HittableList world = random_scene();
+	
+	Renderer* renderer = GUI::getRenderer();
 
-	Camera camera(Point3(25, 6, 8), Point3(0, 0, 0), Vec3(0, 1, 0), 20, renderer.aspect, 0.1, 20);
+	Camera camera(Point3(10, 5, 8), Point3(0, 0, 0), Vec3(0, 1, 0), 20, renderer->aspect, 0.1, 20);
 
-	uint8_t* pixels = renderer.render(world, camera);
+	uint8_t* pixels = renderer->render(world, camera);
 
-	auto end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> duration = end - start;
-	double seconds = duration.count();
-	std::cerr << "\nPicture rendered!\nIt took: " << seconds << " seconds\n";
-
-	stbi_write_jpg("currentRender.jpg", renderer.imageWidth, renderer.imageHeight, 3, pixels, 100);
+	stbi_write_jpg("currentRender.jpg", renderer->imageWidth, renderer->imageHeight, 3, pixels, 100);
 	delete[] pixels;
-	GUI::toggleRendering();
 	//ShellExecuteA(NULL, "open", "currentRender.jpg", NULL, NULL, SW_SHOWNORMAL);
 
 	std::cerr << "Picture written to disk!\n";

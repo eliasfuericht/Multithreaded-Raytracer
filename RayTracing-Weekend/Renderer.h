@@ -8,6 +8,12 @@
 #include "HittableList.h"
 #include "Camera.h"
 
+struct renderingInformation {
+	bool rendering;
+	float time;
+	float progress;
+};
+
 class Renderer
 {
 public:
@@ -19,7 +25,7 @@ public:
     uint8_t* render(HittableList world, Camera camera);
 	uint8_t* getCurrentPixels() { return currentPixels; };
 
-	float getProgress() { return progress; };
+	renderingInformation renderInfo;
 
     int imageWidth;
     int samplesPerPixel;
@@ -28,8 +34,6 @@ public:
     float aspect;
     const int channelNumber = 3;
 	int imageHeight;
-
-	float progress = 0;
 
 private:
 	uint8_t* currentPixels = nullptr;
@@ -95,6 +99,9 @@ uint8_t* Renderer::render(HittableList world, Camera camera) {
 
 	std::vector<uint8_t*> threadPixels(numThreads);
 
+	renderInfo.rendering = true;
+	auto start = std::chrono::high_resolution_clock::now();
+
 	for (int t = 0; t < numThreads; ++t) {
 		int startY = t * stripHeight;
 		int endY = (t + 1) * stripHeight;
@@ -133,7 +140,7 @@ uint8_t* Renderer::render(HittableList world, Camera camera) {
 					scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
 				}
 				tracker--;
-				progress = (float)tracker;
+				renderInfo.progress = (float)tracker;
 				
 			}
 		});
@@ -157,6 +164,13 @@ uint8_t* Renderer::render(HittableList world, Camera camera) {
 		std::copy(threadPixels[t], threadPixels[t] + (endY - startY) * imageWidth * channelNumber, pixels + start);
 		delete[] threadPixels[t];
 	}
+
+	//renderInfo.rendering = false;
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> duration = end - start;
+	renderInfo.time = (float)duration.count();
+	renderInfo.rendering = false;
+
 	return pixels;
 };
 
