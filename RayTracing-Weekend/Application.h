@@ -23,39 +23,34 @@ public:
 public:
 	std::unique_ptr<std::thread> guiThread;
 	HittableList world;
-	Renderer* renderer;
-	Camera camera;
 	uint8_t* pixels;
 
 	int windowWidth, windowHeight;
 	bool running = true;
 };
 
-Application::Application() {
-	windowWidth = 1280;
-	windowHeight = 720;
+Application::Application() 
+	: windowWidth(1280), windowHeight(720)
+{
 }
 
-Application::Application(int w, int h) {
-	windowWidth = w;
-	windowHeight = h;
+Application::Application(int w, int h) 
+	: windowWidth(w), windowHeight(h)
+{
 }
 
 void Application::init() {
 	guiThread = std::make_unique<std::thread>(&GUI::runGUI, windowWidth, windowHeight); // Create a new thread
-	{
-		std::unique_lock<std::mutex> lock(GUI::cvMutex);
-		GUI::cv.wait(lock, [] { return GUI::startRender; });
-	}
+	std::unique_lock<std::mutex> lock(GUI::cvMutex);
+	GUI::cv.wait(lock, [] { return GUI::startRender; });
 	world = random_scene(); // Use the member variable 'world', not a local variable 'world'
 }
 
 void Application::run() {
 	while (running) {
 		if (GUI::startRender) {
-			renderer = GUI::getRenderer();
-			pixels = renderer->render(world, camera);
-			stbi_write_jpg("currentRender.jpg", renderer->imageWidth, renderer->imageHeight, 3, pixels, 100);
+			pixels = GUI::getRenderer()->render(world, *GUI::getCamera());
+			stbi_write_jpg("currentRender.jpg", GUI::getRenderer()->imageWidth, GUI::getRenderer()->imageHeight, 3, pixels, 100);
 			delete[] pixels;
 			std::cerr << "Picture written to disk!\n";
 			GUI::startRender = false;

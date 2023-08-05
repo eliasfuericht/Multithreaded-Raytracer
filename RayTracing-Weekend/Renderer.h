@@ -40,24 +40,24 @@ private:
 	uint8_t* currentPixels = nullptr;
 };
 
-Renderer::Renderer()
+Renderer::Renderer() :
+	imageWidth(640),
+	aspect(16.0f / 9.0f),
+	imageHeight(static_cast<int>(imageWidth / aspect)),
+	samplesPerPixel(8),
+	depth(24),
+	multithreaded(true)
 {
-	imageWidth = 640;
-	aspect = 16.0f / 9.0f;
-	imageHeight = static_cast<int>(imageWidth / aspect);
-	samplesPerPixel = 8;
-	depth = 24;
-	multithreaded = false;
 }
 
-Renderer::Renderer(int width, int samples, int bounces, bool multithread)
+Renderer::Renderer(int width, int samples, int bounces, bool multithread) :
+	imageWidth(width),
+	aspect(16.0f / 9.0f),
+	imageHeight(static_cast<int>(imageWidth / aspect)),
+	samplesPerPixel(samples),
+	depth(bounces),
+	multithreaded(multithread)
 {
-	imageWidth = width;
-	aspect = 16.0f / 9.0f;
-	imageHeight = static_cast<int>(imageWidth / aspect);
-	samplesPerPixel = samples;
-	depth = bounces;
-	multithreaded = multithread;
 }
 
 Color Renderer::rayColor(const Ray& r, const Hittable& w, int depth)

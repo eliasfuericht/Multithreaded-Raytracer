@@ -18,11 +18,21 @@ namespace GUI {
 
 	bool loadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height);
 	Renderer* getRenderer();
+	Camera* getCamera();
 
-	Renderer renderer = Renderer(1080,10,10,true);
+	Renderer* renderer = new Renderer();
+	Camera* camera;
 
 	std::condition_variable cv;
 	std::mutex cvMutex;
+
+	Vec3 lookFrom;
+	Vec3 lookAt;
+	Vec3 vUp(0.0, 1.0, 0.0);
+	float fov;
+	float aspectRatio = 1.7777;
+	float aperture;
+	float focusDistance;
 
 	bool startRender = false;
 }
@@ -105,12 +115,20 @@ void GUI::runGUI(int windowW, int windowH) {
 			//Render Settings Window
 			{
 				ImGui::Begin("Render Settings");
-				ImGui::SliderInt("Image Width", &renderer.imageWidth, 10, 2000);
-				ImGui::SliderInt("Image Height", &renderer.imageHeight, 10, 2000);
-				ImGui::SliderInt("Samples", &renderer.samplesPerPixel, 1, 50);
-				ImGui::SliderInt("Bounces", &renderer.depth, 1, 50);
-				ImGui::Checkbox("multithreading", &renderer.multithreaded);
+				ImGui::SliderInt("Image Width", &renderer->imageWidth, 10, 2000);
+				ImGui::SliderInt("Image Height", &renderer->imageHeight, 10, 2000);
+				ImGui::SliderInt("Samples", &renderer->samplesPerPixel, 1, 50);
+				ImGui::SliderInt("Bounces", &renderer->depth, 1, 50);
+				ImGui::Checkbox("multithreading", &renderer->multithreaded);
+				
+				ImGui::SliderFloat3("Camera Position", (float*)lookFrom.e, 1.0f, 20.0f);
+				ImGui::SliderFloat3("Camera Lookat", (float*)lookAt.e, 1.0f, 20.0f);
+				ImGui::SliderFloat("Camera FOV", &fov, 1.0f, 20.0f);
+				ImGui::SliderFloat("Camera Aperture", &aperture, 0.01f, 1.0f);
+				ImGui::SliderFloat("Camera Focus Distance", &focusDistance, 1.0f, 50.0f);
+				
 				if (ImGui::Button("Start Rendering")) {
+					GUI::camera = new Camera(lookFrom,lookAt,vUp,fov,aspectRatio,aperture,focusDistance);
 					GUI::startRender = true;
 					GUI::cv.notify_one();
 				}
@@ -119,10 +137,10 @@ void GUI::runGUI(int windowW, int windowH) {
 
 			//Progress Window
 			{
-				int f = (int)GUI::renderer.renderInfo.progress;
-				float progress = 100 - ((float)f / GUI::renderer.imageHeight) * 100.0f;
+				int f = (int)GUI::renderer->renderInfo.progress;
+				float progress = 100 - ((float)f / GUI::renderer->imageHeight) * 100.0f;
 				ImGui::Begin("Raytracer Progress");
-				ImGui::SliderInt("Scanlines remaining", &f, 0, GUI::renderer.imageHeight);
+				ImGui::SliderInt("Scanlines remaining", &f, 0, GUI::renderer->imageHeight);
 				ImGui::SliderFloat("Progress:", &progress, 0.0f, 100.0f);
 				ImGui::End();
 			}
@@ -130,7 +148,7 @@ void GUI::runGUI(int windowW, int windowH) {
 			//output Window
 			{
 				ImGui::Begin("OpenGL Texture Text");
-				if (!GUI::renderer.renderInfo.rendering)
+				if (!GUI::renderer->renderInfo.rendering)
 				{
 					int my_image_width = 0;
 					int my_image_height = 0;
@@ -209,5 +227,10 @@ bool GUI::loadTextureFromFile(const char* filename, GLuint* out_texture, int* ou
 
 Renderer* GUI::getRenderer()
 {
-	return &GUI::renderer;
+	return GUI::renderer;
+}
+
+Camera* GUI::getCamera()
+{
+	return GUI::camera;
 }
