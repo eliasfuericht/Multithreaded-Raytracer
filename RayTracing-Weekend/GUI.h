@@ -26,13 +26,13 @@ namespace GUI {
 	std::condition_variable cv;
 	std::mutex cvMutex;
 
-	Vec3 lookFrom;
-	Vec3 lookAt;
-	Vec3 vUp(0.0, 1.0, 0.0);
-	float fov;
-	float aspectRatio = 1.7777;
-	float aperture;
-	float focusDistance;
+	float lookFrom[] = {10.0f,10.0f,10.0f};
+	float lookAt[] = { 0.0f,0.0f,0.0f };
+	float vUp[] = { 0.0f,1.0f,0.0f };
+	float fov = 45.0f;
+	float aspectRatio = 1.7777f;
+	float aperture = 0.1f;
+	float focusDistance = 20.0f;
 
 	bool startRender = false;
 }
@@ -121,14 +121,14 @@ void GUI::runGUI(int windowW, int windowH) {
 				ImGui::SliderInt("Bounces", &renderer->depth, 1, 50);
 				ImGui::Checkbox("multithreading", &renderer->multithreaded);
 				
-				ImGui::SliderFloat3("Camera Position", (float*)lookFrom.e, 1.0f, 20.0f);
-				ImGui::SliderFloat3("Camera Lookat", (float*)lookAt.e, 1.0f, 20.0f);
-				ImGui::SliderFloat("Camera FOV", &fov, 1.0f, 20.0f);
+				ImGui::SliderFloat3("Camera Position", lookFrom, 0.1f, 20.0f);
+				ImGui::SliderFloat3("Camera Lookat", lookAt, 0.0f, 20.0f);
+				ImGui::SliderFloat("Camera FOV", &fov, 1.0f, 90.0f);
 				ImGui::SliderFloat("Camera Aperture", &aperture, 0.01f, 1.0f);
 				ImGui::SliderFloat("Camera Focus Distance", &focusDistance, 1.0f, 50.0f);
 				
 				if (ImGui::Button("Start Rendering")) {
-					GUI::camera = new Camera(lookFrom,lookAt,vUp,fov,aspectRatio,aperture,focusDistance);
+					GUI::camera = new Camera(Point3(lookFrom[0], lookFrom[1], lookFrom[2]), Point3(lookAt[0], lookAt[1], lookAt[2]), Vec3(vUp[0], vUp[1], vUp[2]), (double)fov, (double)aspectRatio, (double)aperture, (double)focusDistance);
 					GUI::startRender = true;
 					GUI::cv.notify_one();
 				}
@@ -147,7 +147,7 @@ void GUI::runGUI(int windowW, int windowH) {
 
 			//output Window
 			{
-				ImGui::Begin("OpenGL Texture Text");
+				ImGui::Begin("Output");
 				if (!GUI::renderer->renderInfo.rendering)
 				{
 					int my_image_width = 0;
