@@ -23,7 +23,7 @@ public:
 
     Color rayColor(const Ray& r, const Hittable& w, int depth);
 
-    uint8_t* render(HittableList world, Camera camera);
+    uint8_t* render(HittableList world, Camera& camera);
 	uint8_t* getCurrentPixels() { return currentPixels; };
 
 	void recalculateImageSize() { imageHeight = static_cast<int>(imageWidth / aspect); };
@@ -82,7 +82,7 @@ Color Renderer::rayColor(const Ray& r, const Hittable& w, int depth)
 	return (1.0 - t) * Color(1.0, 1.0, 1.0) + t * Color(0.5, 0.7, 1.0);
 }
 
-uint8_t* Renderer::render(HittableList world, Camera camera) {
+uint8_t* Renderer::render(HittableList world, Camera& camera) {
 	//pixelarray for jpg-output
 	uint8_t* pixels = new uint8_t[imageWidth * imageHeight * channelNumber];
 

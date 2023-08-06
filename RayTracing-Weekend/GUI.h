@@ -133,6 +133,9 @@ void GUI::runGUI(int windowW, int windowH) {
 					GUI::startRender = true;
 					GUI::cv.notify_one();
 				}
+				if (ImGui::Button("Stop Rendering")) {
+					GUI::startRender = false;
+				}
 				ImGui::End();
 			}
 

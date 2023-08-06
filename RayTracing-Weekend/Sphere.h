@@ -16,7 +16,8 @@ public:
         matPtr = m;
 	};
 
-	bool hit(const Ray& r, double tMin, double tMax, HitRecord& rec) const override;
+	virtual bool hit(const Ray& r, double tMin, double tMax, HitRecord& rec) const override;
+    virtual bool boundingBox(double time0, double time1, AABB& outputBox) const override;
 
 public:
 	Point3 center;
@@ -49,5 +50,12 @@ bool Sphere::hit(const Ray& r, double t_min, double t_max, HitRecord& rec) const
     rec.setFaceNormal(r, outwardNormal);
     rec.matPtr = matPtr;
 
+    return true;
+}
+
+bool Sphere::boundingBox(double time0, double time1, AABB& outputBox) const {
+    outputBox = AABB(
+        center - Vec3(radius, radius, radius),
+        center + Vec3(radius, radius, radius));
     return true;
 }
