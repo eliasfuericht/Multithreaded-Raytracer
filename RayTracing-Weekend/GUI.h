@@ -128,7 +128,8 @@ void GUI::runGUI(int windowW, int windowH) {
 				ImGui::SliderFloat("Camera Focus Distance", &focusDistance, 1.0f, 50.0f);
 				
 				if (ImGui::Button("Start Rendering")) {
-					GUI::camera = new Camera(Point3(lookFrom[0], lookFrom[1], lookFrom[2]), Point3(lookAt[0], lookAt[1], lookAt[2]), Vec3(vUp[0], vUp[1], vUp[2]), (double)fov, (double)aspectRatio, (double)aperture, (double)focusDistance);
+					GUI::renderer->recalculateImageSize();
+					GUI::camera = new Camera(Point3(lookFrom[0], lookFrom[1], lookFrom[2]), Point3(lookAt[0], lookAt[1], lookAt[2]), Vec3(vUp[0], vUp[1], vUp[2]), (double)fov, (double)aspectRatio, (double)aperture, (double)focusDistance, 0.0, 1.0);
 					GUI::startRender = true;
 					GUI::cv.notify_one();
 				}

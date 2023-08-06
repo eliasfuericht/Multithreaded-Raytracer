@@ -18,7 +18,7 @@ public:
 	) const override {
 		auto scatterDirection = rec.normal + randomInUnitVector();
 		if (scatterDirection.nearZero()) scatterDirection = rec.normal;
-		scattered = Ray(rec.p, scatterDirection);
+		scattered = Ray(rec.p, scatterDirection, rIn.getTime());
 		attenuation = albedo;
 		return true;
 	}
@@ -38,7 +38,7 @@ public:
 		const Ray& rIn, const HitRecord& rec, Color& attenuation, Ray& scattered
 	) const override {
 		Vec3 reflected = reflect(normalize(rIn.getDirection()), rec.normal);
-		scattered = Ray(rec.p, reflected + fuzz * randomInUnitSphere());
+		scattered = Ray(rec.p, reflected + fuzz * randomInUnitSphere(), rIn.getTime());
 		attenuation = albedo;
 		return (dot(scattered.getDirection(), rec.normal) > 0);
 	}
@@ -72,7 +72,7 @@ public:
 		else
 			direction = refract(unitDirection, rec.normal, refractionRatio);
 
-		scattered = Ray(rec.p, direction);
+		scattered = Ray(rec.p, direction, rIn.getTime());
 		return true;
 	}
 public: 

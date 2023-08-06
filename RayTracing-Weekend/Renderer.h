@@ -26,6 +26,8 @@ public:
     uint8_t* render(HittableList world, Camera camera);
 	uint8_t* getCurrentPixels() { return currentPixels; };
 
+	void recalculateImageSize() { imageHeight = static_cast<int>(imageWidth / aspect); };
+
 	renderingInformation renderInfo;
 
     int imageWidth;

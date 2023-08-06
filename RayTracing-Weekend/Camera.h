@@ -13,6 +13,8 @@ public:
 		double aspectRatio = 1.7777;
 		double aperture = 0.1;
 		double focusDistance = 20;
+		double _time0 = 0;
+		double _time1 = 0;
 		auto theta = degToRad(vfov);
 		auto h = tan(theta / 2);
 		auto viewportHeight = 2.0 * h;
@@ -31,8 +33,10 @@ public:
 		lowerLeftCorner = origin - horizontal / 2 - vertical / 2 - focusDistance * w;
 
 		lens_radius = aperture / 2;
+		time0 = _time0;
+		time1 = _time1;
 	}
-	Camera(Point3 lookfrom, Point3 lookat, Vec3 vup, double vfov, double aspectRatio, double aperture, double focusDistance) {
+	Camera(Point3 lookfrom, Point3 lookat, Vec3 vup, double vfov, double aspectRatio, double aperture, double focusDistance, double _time0, double _time1) {
 		auto theta = degToRad(vfov);
 		auto h = tan(theta / 2);
 		auto viewportHeight = 2.0 * h;
@@ -51,6 +55,8 @@ public:
 		lowerLeftCorner = origin - horizontal / 2 - vertical / 2 - focusDistance * w;
 
 		lens_radius = aperture / 2;
+		time0 = _time0;
+		time1 = _time1;
 	};
 
 	Ray getRay(double s, double t) const {
@@ -59,7 +65,8 @@ public:
 
 		return Ray(
 			origin + offset,
-			lowerLeftCorner + s * horizontal + t * vertical - origin - offset
+			lowerLeftCorner + s * horizontal + t * vertical - origin - offset,
+			randomD(time0, time1)
 		);
 	}
 
@@ -70,5 +77,6 @@ public:
 	Vec3 vertical;
 	Vec3 u, v, w;
 	double lens_radius;
-};
+	double time0, time1;
+};		 
 
