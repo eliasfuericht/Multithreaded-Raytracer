@@ -1,5 +1,6 @@
 # Multithreaded Brute Force Raytracer
-### Based on the [Raytracing in one Weekend Series](https://raytracing.github.io/) by Peter Shirley. Extended to support multithreading.
+Based on the [Raytracing in one Weekend Series](https://raytracing.github.io/) by Peter Shirley. 
+Extended to support multithreading.
 GUI built with [Dear ImGui](https://github.com/ocornut/imgui) and OpenGL.
 
 Renders:
