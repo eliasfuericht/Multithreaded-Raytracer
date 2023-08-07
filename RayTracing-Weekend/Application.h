@@ -11,17 +11,13 @@
 #include "Renderer.h"
 #include "MovingSphere.h"
 
-class Application {
-public:
-	Application();
-	Application(int w, int h);
+namespace Application {
 
-	void init();
+	void init(int w, int h);
 	void run();
 
-	HittableList random_scene();
+	HittableList scene();
 
-public:
 	std::unique_ptr<std::thread> guiThread;
 	HittableList world;
 	uint8_t* pixels;
@@ -30,28 +26,18 @@ public:
 	bool running = true;
 };
 
-Application::Application() 
-	: windowWidth(1280), windowHeight(720)
-{
-}
-
-Application::Application(int w, int h) 
-	: windowWidth(w), windowHeight(h)
-{
-}
-
-void Application::init() {
-	guiThread = std::make_unique<std::thread>(&GUI::runGUI, windowWidth, windowHeight); // Create a new thread
+void Application::init(int w, int h) {
+	guiThread = std::make_unique<std::thread>(&GUI::runGUI, windowWidth = w, windowHeight = h);
 	std::unique_lock<std::mutex> lock(GUI::cvMutex);
 	GUI::cv.wait(lock, [] { return GUI::startRender; });
-	world = random_scene(); // Use the member variable 'world', not a local variable 'world'
+	world = scene();
 }
 
 void Application::run() {
 	while (running) {
 		if (GUI::startRender) {
-			pixels = GUI::getRenderer()->render(world, *GUI::getCamera());
-			stbi_write_jpg("currentRender.jpg", GUI::getRenderer()->imageWidth, GUI::getRenderer()->imageHeight, 3, pixels, 100);
+			pixels = GUI::renderer->render(world, *GUI::camera);
+			stbi_write_jpg("currentRender.jpg", GUI::renderer->imageWidth, GUI::renderer->imageHeight, 3, pixels, 100);
 			delete[] pixels;
 			std::cerr << "Picture written to disk!\n";
 			GUI::startRender = false;
@@ -60,7 +46,7 @@ void Application::run() {
 	guiThread->join();
 }
 
-HittableList Application::random_scene() {
+HittableList Application::scene() {
 	HittableList world;
 
 	auto ground_material = make_shared<Lambertian>(Color(0.5, 0.5, 0.5));
@@ -73,7 +59,6 @@ HittableList Application::random_scene() {
 			if ((center - Point3(4, 0.2, 0)).length() > 0.9) {
 				shared_ptr<Material> sphere_material;
 				if (choose_mat < 0.8) {
-					// diffuse
 					auto albedo = Color::random() * Color::random();
 					sphere_material = make_shared<Lambertian>(albedo);
 					auto center2 = center + Vec3(0, randomD(0, .5), 0);
@@ -81,14 +66,12 @@ HittableList Application::random_scene() {
 						center, center2, 0.0, 1.0, 0.2, sphere_material));
 				}
 				else if (choose_mat < 0.95) {
-					// metal
 					auto albedo = Color::random(0.5, 1);
 					auto fuzz = randomD(0, 0.5);
 					sphere_material = make_shared<Metal>(albedo, fuzz);
 					world.add(make_shared<Sphere>(center, 0.2, sphere_material));
 				}
 				else {
-					// glass
 					sphere_material = make_shared<Dielectric>(1.5);
 					world.add(make_shared<Sphere>(center, 0.2, sphere_material));
 				}

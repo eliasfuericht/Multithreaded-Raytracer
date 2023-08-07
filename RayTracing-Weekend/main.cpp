@@ -11,9 +11,8 @@
 
 int main(int argc, char* args[]) {
 
-	Application app(1280, 720);
-	app.init();
-	app.run();
+	Application::init(1280, 720);
+	Application::run();
 
 	return 0;
 }

@@ -4,7 +4,6 @@
 #include <vector>
 #include <mutex>
 
-#include "GUI.h"
 #include "Material.h"
 #include "HittableList.h"
 #include "Camera.h"

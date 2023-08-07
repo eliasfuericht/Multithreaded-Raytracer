@@ -26,7 +26,7 @@ namespace GUI {
 	std::condition_variable cv;
 	std::mutex cvMutex;
 
-	float lookFrom[] = {10.0f,10.0f,10.0f};
+	float lookFrom[] = { 10.0f,10.0f,10.0f };
 	float lookAt[] = { 0.0f,0.0f,0.0f };
 	float vUp[] = { 0.0f,1.0f,0.0f };
 	float fov = 45.0f;
@@ -129,7 +129,8 @@ void GUI::runGUI(int windowW, int windowH) {
 				
 				if (ImGui::Button("Start Rendering")) {
 					GUI::renderer->recalculateImageSize();
-					GUI::camera = new Camera(Point3(lookFrom[0], lookFrom[1], lookFrom[2]), Point3(lookAt[0], lookAt[1], lookAt[2]), Vec3(vUp[0], vUp[1], vUp[2]), (double)fov, (double)aspectRatio, (double)aperture, (double)focusDistance, 0.0, 1.0);
+					GUI::camera = new Camera(Point3(lookFrom[0], lookFrom[1], lookFrom[2]), Point3(lookAt[0], lookAt[1], lookAt[2]), 
+													Vec3(vUp[0], vUp[1], vUp[2]), (double)fov, (double)aspectRatio, (double)aperture, (double)focusDistance, 0.0, 1.0);
 					GUI::startRender = true;
 					GUI::cv.notify_one();
 				}
