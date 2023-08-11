@@ -65,7 +65,6 @@ Color Renderer::rayColor(const Ray& r, const Hittable& w, int depth)
 {
 	HitRecord rec;
 
-	// If we've exceeded the ray bounce limit, no more light is gathered.
 	if (depth <= 0)
 		return Color(0, 0, 0);
 
@@ -141,9 +140,10 @@ uint8_t* Renderer::render(HittableList world, Camera& camera) {
 					scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(g, 0.0, 0.999));
 					scanlinePixels[scanlineIndex++] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
 				}
+				if (!renderInfo.rendering)
+					break;
 				tracker--;
 				renderInfo.progress = (float)tracker;
-				
 			}
 		});
 	}

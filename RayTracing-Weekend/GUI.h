@@ -33,8 +33,6 @@ namespace GUI {
 	float aspectRatio = 1.7777f;
 	float aperture = 0.1f;
 	float focusDistance = 20.0f;
-
-	bool startRender = false;
 }
 
 void GUI::runGUI(int windowW, int windowH) {
@@ -131,11 +129,11 @@ void GUI::runGUI(int windowW, int windowH) {
 					GUI::renderer->recalculateImageSize();
 					GUI::camera = new Camera(Point3(lookFrom[0], lookFrom[1], lookFrom[2]), Point3(lookAt[0], lookAt[1], lookAt[2]), 
 													Vec3(vUp[0], vUp[1], vUp[2]), (double)fov, (double)aspectRatio, (double)aperture, (double)focusDistance, 0.0, 1.0);
-					GUI::startRender = true;
+					GUI::renderer->renderInfo.rendering = true;
 					GUI::cv.notify_one();
 				}
 				if (ImGui::Button("Stop Rendering")) {
-					GUI::startRender = false;
+					GUI::renderer->renderInfo.rendering = false;
 				}
 				ImGui::End();
 			}
@@ -143,10 +141,12 @@ void GUI::runGUI(int windowW, int windowH) {
 			//Progress Window
 			{
 				int f = (int)GUI::renderer->renderInfo.progress;
-				float progress = 100 - ((float)f / GUI::renderer->imageHeight) * 100.0f;
+				float progress = 100 - ((float)GUI::renderer->renderInfo.progress / GUI::renderer->imageHeight) * 100.0f;
 				ImGui::Begin("Raytracer Progress");
 				ImGui::SliderInt("Scanlines remaining", &f, 0, GUI::renderer->imageHeight);
 				ImGui::SliderFloat("Progress:", &progress, 0.0f, 100.0f);
+				ImGui::Text("Rendertime: %.2fseconds", GUI::renderer->renderInfo.time);
+				//ImGui::SliderFloat("Rendertime:", &GUI::renderer->renderInfo.time, 0.0f, 100.0f);
 				ImGui::End();
 			}
 

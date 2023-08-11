@@ -29,18 +29,18 @@ namespace Application {
 void Application::init(int w, int h) {
 	guiThread = std::make_unique<std::thread>(&GUI::runGUI, windowWidth = w, windowHeight = h);
 	std::unique_lock<std::mutex> lock(GUI::cvMutex);
-	GUI::cv.wait(lock, [] { return GUI::startRender; });
+	GUI::cv.wait(lock, [] { return GUI::renderer->renderInfo.rendering; });
 	world = scene();
 }
 
 void Application::run() {
 	while (running) {
-		if (GUI::startRender) {
+		if (GUI::renderer->renderInfo.rendering) {
 			pixels = GUI::renderer->render(world, *GUI::camera);
 			stbi_write_jpg("currentRender.jpg", GUI::renderer->imageWidth, GUI::renderer->imageHeight, 3, pixels, 100);
 			delete[] pixels;
 			std::cerr << "Picture written to disk!\n";
-			GUI::startRender = false;
+			GUI::renderer->renderInfo.rendering = false;
 		}
 	}
 	guiThread->join();
